@@ -19,14 +19,14 @@ class RacetrackDesigner:
         control_frame.pack(side=tk.RIGHT, padx=10, pady=10)
         
         # Parameters
-        self.resolution = tk.DoubleVar(value=10.0)
-        self.real_width = tk.DoubleVar(value=100.0)
-        self.real_height = tk.DoubleVar(value=50.0)
-        self.left_width = tk.DoubleVar(value=5.0)
-        self.right_width = tk.DoubleVar(value=5.0)
-        self.boundary_width = tk.DoubleVar(value=0.5)
+        self.resolution = tk.DoubleVar(value=0.06250)
+        self.real_width = tk.DoubleVar(value=27.0)
+        self.real_height = tk.DoubleVar(value=10.0)
+        self.left_width = tk.DoubleVar(value=0.6)
+        self.right_width = tk.DoubleVar(value=0.6)
+        self.boundary_width = tk.DoubleVar(value=0.1)
         
-        self.create_entry(control_frame, "Resolution (cells/m):", self.resolution, 0)
+        self.create_entry(control_frame, "Resolution (m/cell):", self.resolution, 0)
         self.create_entry(control_frame, "Real Width (m):", self.real_width, 1)
         self.create_entry(control_frame, "Real Height (m):", self.real_height, 2)
         self.create_entry(control_frame, "Left Width (m):", self.left_width, 3)
@@ -243,7 +243,7 @@ class RacetrackDesigner:
         self.canvas.delete("all")
         
         # Generate grid
-        res = self.resolution.get()
+        res = 1/self.resolution.get()
         grid_w = int(self.real_width.get() * res)
         grid_h = int(self.real_height.get() * res)
         grid = np.zeros((grid_h, grid_w), dtype=np.uint8)
@@ -289,7 +289,7 @@ class RacetrackDesigner:
 
     def save_grid(self):
         # Generate grid (same as in update_display)
-        res = self.resolution.get()
+        res = 1/self.resolution.get()
         grid_w = int(self.real_width.get() * res)
         grid_h = int(self.real_height.get() * res)
         grid = np.zeros((grid_h, grid_w), dtype=np.uint8)
