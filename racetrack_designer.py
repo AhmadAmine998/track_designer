@@ -184,7 +184,7 @@ class RacetrackDesigner:
             print("Spline error:", e)
             return None, None, False
 
-    def generate_polygon(self, x, y, closed):
+    def generate_polygon(self, x, y, lw, rw):
         if x is None or len(x) < 2:
             return []
 
@@ -194,9 +194,6 @@ class RacetrackDesigner:
         dx /= norm
         dy /= norm
 
-        lw = self.left_width.get()
-        rw = self.right_width.get()
-
         left_x = x - dy * lw
         left_y = y + dx * lw
         right_x = x + dy * rw
@@ -204,40 +201,6 @@ class RacetrackDesigner:
 
         return np.concatenate([np.column_stack([left_x, left_y]),
                               np.column_stack([right_x[::-1], right_y[::-1]])])
-
-    def generate_boundary(self, grid, polygon, res):
-        if polygon.size == 0:
-            return grid
-        
-        # Create inner and outer polygons for boundary
-        inner_poly = polygon.copy()
-        outer_poly = polygon.copy()
-        
-        # Calculate normal vectors for offset
-        dx = np.gradient(polygon[:,0])
-        dy = np.gradient(polygon[:,1])
-        norm = np.hypot(dx, dy)
-        dx /= norm
-        dy /= norm
-        
-        # Offset polygons
-        bw = self.boundary_width.get()
-        inner_poly[:,0] -= dx * bw
-        inner_poly[:,1] -= dy * bw
-        outer_poly[:,0] += dx * bw
-        outer_poly[:,1] += dy * bw
-        
-        # Convert to integer coordinates
-        inner_poly_scaled = (inner_poly * res).astype(np.int32)
-        outer_poly_scaled = (outer_poly * res).astype(np.int32)
-        
-        # Create mask for boundary
-        boundary_mask = np.zeros_like(grid)
-        cv2.fillPoly(boundary_mask, [outer_poly_scaled], color=1)
-        cv2.fillPoly(boundary_mask, [inner_poly_scaled], color=0)
-        
-        # Combine with original grid
-        return np.where(boundary_mask == 1, 1, grid)
 
     def update_display(self):
         self.canvas.delete("all")
@@ -251,13 +214,16 @@ class RacetrackDesigner:
         # Generate track
         x_spline, y_spline, closed = self.generate_spline()
         if x_spline is not None:
-            polygon = self.generate_polygon(x_spline, y_spline, closed)
+            polygon = self.generate_polygon(x_spline, y_spline, self.left_width.get(), self.right_width.get())
             if polygon.size > 0:
                 scaled_poly = (polygon * res).astype(np.int32)
                 cv2.fillPoly(grid, [scaled_poly], color=1)
                 
-                # Apply boundary effect
-                grid = self.generate_boundary(grid, polygon, res)
+                # Generate boundary using generate_polygon but with white
+                boundary_poly = self.generate_polygon(x_spline, y_spline, self.left_width.get() - self.boundary_width.get(), self.right_width.get() - self.boundary_width.get())
+                if boundary_poly.size > 0:
+                    scaled_boundary = (boundary_poly * res).astype(np.int32)
+                    cv2.fillPoly(grid, [scaled_boundary], color=0)
         
         # Convert grid to image
         img = Image.fromarray((1 - grid) * 255)
