@@ -1,6 +1,6 @@
 import tkinter as tk
 import numpy as np
-from scipy.interpolate import CubicSpline
+from scipy.interpolate import CubicSpline, Akima1DInterpolator, PchipInterpolator
 from PIL import Image, ImageTk, ImageDraw
 import cv2
 import datetime
@@ -176,10 +176,10 @@ class RacetrackDesigner:
 
         try:
             t = np.linspace(0, 1, len(points)) if closed else np.arange(len(points))
-            cs_x = CubicSpline(t, x, bc_type='periodic' if closed else 'natural')
-            cs_y = CubicSpline(t, y, bc_type='periodic' if closed else 'natural')
+            akima_x = Akima1DInterpolator(t, x)
+            akima_y = Akima1DInterpolator(t, y)
             t_new = np.linspace(t.min(), t.max(), 200)
-            return cs_x(t_new), cs_y(t_new), closed
+            return akima_x(t_new), akima_y(t_new), closed
         except Exception as e:
             print("Spline error:", e)
             return None, None, False
@@ -262,11 +262,16 @@ class RacetrackDesigner:
 
         x_spline, y_spline, closed = self.generate_spline()
         if x_spline is not None:
-            polygon = self.generate_polygon(x_spline, y_spline, closed)
+            polygon = self.generate_polygon(x_spline, y_spline, self.left_width.get(), self.right_width.get())
             if polygon.size > 0:
                 scaled_poly = (polygon * res).astype(np.int32)
                 cv2.fillPoly(grid, [scaled_poly], color=1)
-                grid = self.generate_boundary(grid, polygon, res)
+
+                # Generate boundary using generate_polygon but with white
+                boundary_poly = self.generate_polygon(x_spline, y_spline, self.left_width.get() - self.boundary_width.get(), self.right_width.get() - self.boundary_width.get())
+                if boundary_poly.size > 0:
+                    scaled_boundary = (boundary_poly * res).astype(np.int32)
+                    cv2.fillPoly(grid, [scaled_boundary], color=0)
 
         # Create image from grid (PGM is a grayscale format)
         img = Image.fromarray((1 - grid) * 255)
