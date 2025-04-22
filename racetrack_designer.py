@@ -3,6 +3,7 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 from PIL import Image, ImageTk, ImageDraw
 import cv2
+import datetime
 
 class RacetrackDesigner:
     def __init__(self, root):
@@ -287,11 +288,46 @@ class RacetrackDesigner:
         self.update_display()
 
     def save_grid(self):
-        # Add actual saving logic here
+        # Generate grid (same as in update_display)
         res = self.resolution.get()
         grid_w = int(self.real_width.get() * res)
         grid_h = int(self.real_height.get() * res)
-        print("Grid saved!")
+        grid = np.zeros((grid_h, grid_w), dtype=np.uint8)
+
+        x_spline, y_spline, closed = self.generate_spline()
+        if x_spline is not None:
+            polygon = self.generate_polygon(x_spline, y_spline, closed)
+            if polygon.size > 0:
+                scaled_poly = (polygon * res).astype(np.int32)
+                cv2.fillPoly(grid, [scaled_poly], color=1)
+                grid = self.generate_boundary(grid, polygon, res)
+
+        # Create image from grid (PGM is a grayscale format)
+        img = Image.fromarray((1 - grid) * 255)
+
+        # Generate timestamp for filename
+        timestamp = datetime.datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
+
+        png_filename = f"{timestamp}.png"
+        yaml_filename = f"{timestamp}.yaml"
+
+        # Save image files
+        img.save(png_filename)
+
+        # Create and save YAML with parameters
+        yaml_content = f"""image: "{png_filename}"
+resolution: {self.resolution.get()}
+origin: [0.0, 0.0, 0.000000]
+negate: 0
+occupied_thresh: 0.45
+free_thresh: 0.196
+"""
+
+        with open(yaml_filename, "w") as f:
+            f.write(yaml_content)
+
+        print(f"Grid saved to {png_filename} and YAML config saved to {yaml_filename}")
+
 
 if __name__ == "__main__":
     root = tk.Tk()
