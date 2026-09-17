@@ -172,3 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Occupancy grids and projects written by the designer's Save button
+[0-3][0-9]_[0-1][0-9]_[0-9][0-9][0-9][0-9]_*.png
+[0-3][0-9]_[0-1][0-9]_[0-9][0-9][0-9][0-9]_*.yaml
+[0-3][0-9]_[0-1][0-9]_[0-9][0-9][0-9][0-9]_*.json
